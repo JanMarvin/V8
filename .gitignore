@@ -3,6 +3,7 @@
 .Rhistory
 .RData
 homebrew
+inst/v8*
 src/*.o
 src/*.so
 src/*.dll
