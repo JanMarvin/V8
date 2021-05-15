@@ -42,36 +42,34 @@ static void fatal_cb(const char* location, const char* message){
 
 // [[Rcpp::init]]
 void start_v8_isolate(void *dll){
+
+  SEXP v8_running = {0};
+  Rcpp::Function sys_getenv("Sys.getenv");
+  Rcpp::Function sys_setenv("Sys.setenv");
+
+  v8_running = sys_getenv("V8_running");
+  bool is_v8_running = atoi(Rcpp::as<std::string>(v8_running).c_str());
+
+  Rcpp::Rcout << "V8 Status " << is_v8_running << std::endl;
+
+  // if (!is_v8_running) {
 #ifdef V8_ICU_DATA_PATH
-  // Needed if V8 is built with bundled ICU. Check CRAN package 'dagitty' to test.
-  if( access( V8_ICU_DATA_PATH, F_OK ) != -1 ) {
-    v8::V8::InitializeICUDefaultLocation(V8_ICU_DATA_PATH);
-  }
+    // Needed if V8 is built with bundled ICU. Check CRAN package 'dagitty' to test.
+    if( access( V8_ICU_DATA_PATH, F_OK ) != -1 ) {
+      v8::V8::InitializeICUDefaultLocation(V8_ICU_DATA_PATH);
+    }
 #endif
 #if (V8_MAJOR_VERSION * 100 + V8_MINOR_VERSION) >= 704
-  std::unique_ptr<v8::Platform> platform = v8::platform::NewDefaultPlatform();
-  v8::V8::InitializePlatform(platform.get());
-  platform.release(); //UBSAN complains if platform is destroyed when out of scope
+    std::unique_ptr<v8::Platform> platform = v8::platform::NewDefaultPlatform();
+    v8::V8::InitializePlatform(platform.get());
+    platform.release(); //UBSAN complains if platform is destroyed when out of scope
 #else
-  v8::V8::InitializePlatform(v8::platform::CreateDefaultPlatform());
+    v8::V8::InitializePlatform(v8::platform::CreateDefaultPlatform());
 #endif
-  v8::V8::Initialize();
-  v8::Isolate::CreateParams create_params;
-  create_params.array_buffer_allocator =
-    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-  isolate = v8::Isolate::New(create_params);
-  if(!isolate)
-    throw std::runtime_error("Failed to initiate V8 isolate");
-  isolate->AddMessageListener(message_cb);
-  isolate->SetFatalErrorHandler(fatal_cb);
+    v8::V8::Initialize();
+    sys_setenv(Rcpp::Named("V8_running",1));
+  // }
 
-#ifdef __linux__
-  /* This should fix packages hitting stack limit on Fedora.
-   * CurrentStackPosition trick copied from chromium. */
-  static const int kWorkerMaxStackSize = 2000 * 1024;
-  uintptr_t CurrentStackPosition = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
-  isolate->SetStackLimit(CurrentStackPosition - kWorkerMaxStackSize);
-#endif
 }
 
 /* Helper fun that compiles JavaScript source code */
@@ -304,6 +302,25 @@ v8::Local<v8::Object> console_template(){
 
 // [[Rcpp::export]]
 ctxptr make_context(bool set_console){
+
+  Rcpp::Rcout << "-------------------------------ONE." << std::endl;
+  v8::Isolate::CreateParams create_params;
+  create_params.array_buffer_allocator =
+    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+  isolate = v8::Isolate::New(create_params);
+  if(!isolate)
+    throw std::runtime_error("Failed to initiate V8 isolate");
+  isolate->AddMessageListener(message_cb);
+  isolate->SetFatalErrorHandler(fatal_cb);
+
+#ifdef __linux__
+  /* This should fix packages hitting stack limit on Fedora.
+   * CurrentStackPosition trick copied from chromium. */
+  static const int kWorkerMaxStackSize = 2000 * 1024;
+  uintptr_t CurrentStackPosition = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
+  isolate->SetStackLimit(CurrentStackPosition - kWorkerMaxStackSize);
+#endif
+
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
@@ -318,8 +335,8 @@ ctxptr make_context(bool set_console){
   // See: https://stackoverflow.com/questions/49620965/v8-cannot-set-objecttemplate-with-name-console
   if(set_console){
     if(context->Global()->Has(context, console).FromMaybe(true)){
-       if(context->Global()->Delete(context, console).IsNothing())
-         Rcpp::warning("Could not delete console.");
+      if(context->Global()->Delete(context, console).IsNothing())
+        Rcpp::warning("Could not delete console.");
     }
     if(context->Global()->Set(context, console, console_template()).IsNothing())
       Rcpp::warning("Could not set console.");
