@@ -47,34 +47,26 @@ int is_install() {
   return path.find("00LOCK-V8/00new/V8/libs") == 1;
 }
 
+static std::unique_ptr<v8::Platform> platform = nullptr;
+Rcpp::Function sys_getenv("Sys.getenv");
+Rcpp::Function sys_setenv("Sys.setenv");
+
 // [[Rcpp::init]]
 void start_v8_isolate(void *dll){
 
   SEXP v8_running = {0};
-  Rcpp::Function sys_getenv("Sys.getenv");
-  Rcpp::Function sys_setenv("Sys.setenv");
 
   v8_running = sys_getenv("V8_running");
-  // Rf_PrintValue(v8_running);
+  Rf_PrintValue(v8_running);
   bool is_v8_running = atoi(Rcpp::as<std::string>(v8_running).c_str());
 
   // Rcpp::Rcout << "V8 Status " << is_v8_running << std::endl;
   // Rcpp::Rcout << "is_install "  << is_install() << std::endl;
 
-  if (!is_v8_running || is_install()) {
-#ifdef V8_ICU_DATA_PATH
-    // Needed if V8 is built with bundled ICU. Check CRAN package 'dagitty' to test.
-    if( access( V8_ICU_DATA_PATH, F_OK ) != -1 ) {
-      v8::V8::InitializeICUDefaultLocation(V8_ICU_DATA_PATH);
-    }
-#endif
-#if (V8_MAJOR_VERSION * 100 + V8_MINOR_VERSION) >= 704
-    std::unique_ptr<v8::Platform> platform = v8::platform::NewDefaultPlatform();
+  // if (!is_v8_running || is_install()) {
+    platform = v8::platform::NewDefaultPlatform();
     v8::V8::InitializePlatform(platform.get());
-    platform.release(); //UBSAN complains if platform is destroyed when out of scope
-#else
-    v8::V8::InitializePlatform(v8::platform::CreateDefaultPlatform());
-#endif
+    // platform.release(); //UBSAN complains if platform is destroyed when out of scope
     v8::V8::Initialize();
 
     v8::Isolate::CreateParams create_params;
@@ -86,16 +78,16 @@ void start_v8_isolate(void *dll){
     isolate->AddMessageListener(message_cb);
     isolate->SetFatalErrorHandler(fatal_cb);
 
-#ifdef __linux__
-    /* This should fix packages hitting stack limit on Fedora.
-     * CurrentStackPosition trick copied from chromium. */
-    static const int kWorkerMaxStackSize = 2000 * 1024;
-    uintptr_t CurrentStackPosition = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
-    isolate->SetStackLimit(CurrentStackPosition - kWorkerMaxStackSize);
-#endif
+// #ifdef __linux__
+//     /* This should fix packages hitting stack limit on Fedora.
+//      * CurrentStackPosition trick copied from chromium. */
+//     static const int kWorkerMaxStackSize = 2000 * 1024;
+//     uintptr_t CurrentStackPosition = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
+//     isolate->SetStackLimit(CurrentStackPosition - kWorkerMaxStackSize);
+// #endif
 
     sys_setenv(Rcpp::Named("V8_running",1));
-  }
+  // }
 
 }
 
@@ -221,7 +213,7 @@ Rcpp::RObject context_eval(Rcpp::String src, Rcpp::XPtr< v8::Persistent<v8::Cont
   src.set_encoding(CE_UTF8);
 
   // Create a scope
-  v8::Locker locker(isolate);
+  // v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Context::Scope context_scope(ctx.checked_get()->Get(isolate));
@@ -262,7 +254,7 @@ bool write_array_buffer(Rcpp::String key, Rcpp::RawVector data, Rcpp::XPtr< v8::
     throw std::runtime_error("v8::Context has been disposed.");
 
   // Create a scope
-  v8::Locker locker(isolate);
+  // v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::Context> context = ctx.checked_get()->Get(isolate);
@@ -297,7 +289,7 @@ bool context_validate(Rcpp::String src, Rcpp::XPtr< v8::Persistent<v8::Context> 
   src.set_encoding(CE_UTF8);
 
   // Create a scope
-  v8::Locker locker(isolate);
+  // v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Context::Scope context_scope(ctx.checked_get()->Get(isolate));
@@ -333,7 +325,7 @@ v8::Local<v8::Object> console_template(){
 // [[Rcpp::export]]
 ctxptr make_context(bool set_console){
 
-  v8::Locker locker(isolate);
+  // v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
@@ -342,7 +334,6 @@ ctxptr make_context(bool set_console){
   global->Set(ToJSString("print"), v8::FunctionTemplate::New(isolate, ConsoleLog));
   v8::Local<v8::Context> context = v8::Context::New(isolate, NULL, global);
   v8::Context::Scope context_scope(context);
-  {
     v8::Local<v8::String> console = ToJSString("console");
     // need to unset global.console, or it will crash in some V8 versions (e.g. Fedora)
     // See: https://stackoverflow.com/questions/49620965/v8-cannot-set-objecttemplate-with-name-console
@@ -354,7 +345,6 @@ ctxptr make_context(bool set_console){
       if(context->Global()->Set(context, console, console_template()).IsNothing())
         Rcpp::warning("Could not set console.");
     }
-  }
   v8::Persistent<v8::Context> *ptr = new v8::Persistent<v8::Context>(isolate, context);
   return ctxptr(ptr);
 }
