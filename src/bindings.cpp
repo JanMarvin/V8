@@ -1,5 +1,5 @@
 #include <libplatform/libplatform.h>
-#include <filesystem>
+// #include <filesystem>
 #include "V8_types.h"
 
 /* used for setting icu data below */
@@ -41,11 +41,11 @@ static void fatal_cb(const char* location, const char* message){
   REprintf("V8 FATAL ERROR in %s: %s", location, message);
 }
 
-int is_install() {
-  std::string path = std::filesystem::current_path();
-  // Rcpp::Rcout << path << std::endl;
-  return path.find("00LOCK-V8/00new/V8/libs") == 1;
-}
+// int is_install() {
+//   std::string path = std::filesystem::current_path();
+//   // Rcpp::Rcout << path << std::endl;
+//   return path.find("00LOCK-V8/00new/V8/libs") == 1;
+// }
 
 static std::unique_ptr<v8::Platform> platform = nullptr;
 Rcpp::Function sys_getenv("Sys.getenv");
@@ -64,29 +64,29 @@ void start_v8_isolate(void *dll){
   // Rcpp::Rcout << "is_install "  << is_install() << std::endl;
 
   // if (!is_v8_running || is_install()) {
-    platform = v8::platform::NewDefaultPlatform();
-    v8::V8::InitializePlatform(platform.get());
-    // platform.release(); //UBSAN complains if platform is destroyed when out of scope
-    v8::V8::Initialize();
+  platform = v8::platform::NewDefaultPlatform();
+  v8::V8::InitializePlatform(platform.get());
+  // platform.release(); //UBSAN complains if platform is destroyed when out of scope
+  v8::V8::Initialize();
 
-    v8::Isolate::CreateParams create_params;
-    create_params.array_buffer_allocator =
-      v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-    isolate = v8::Isolate::New(create_params);
-    if(!isolate)
-      throw std::runtime_error("Failed to initiate V8 isolate");
-    isolate->AddMessageListener(message_cb);
-    isolate->SetFatalErrorHandler(fatal_cb);
+  v8::Isolate::CreateParams create_params;
+  create_params.array_buffer_allocator =
+    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+  isolate = v8::Isolate::New(create_params);
+  if(!isolate)
+    throw std::runtime_error("Failed to initiate V8 isolate");
+  isolate->AddMessageListener(message_cb);
+  isolate->SetFatalErrorHandler(fatal_cb);
 
-// #ifdef __linux__
-//     /* This should fix packages hitting stack limit on Fedora.
-//      * CurrentStackPosition trick copied from chromium. */
-//     static const int kWorkerMaxStackSize = 2000 * 1024;
-//     uintptr_t CurrentStackPosition = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
-//     isolate->SetStackLimit(CurrentStackPosition - kWorkerMaxStackSize);
-// #endif
+  #ifdef __linux__
+      /* This should fix packages hitting stack limit on Fedora.
+       * CurrentStackPosition trick copied from chromium. */
+      static const int kWorkerMaxStackSize = 2000 * 1024;
+      uintptr_t CurrentStackPosition = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
+      isolate->SetStackLimit(CurrentStackPosition - kWorkerMaxStackSize);
+  #endif
 
-    sys_setenv(Rcpp::Named("V8_running",1));
+  sys_setenv(Rcpp::Named("V8_running",1));
   // }
 
 }
@@ -334,17 +334,17 @@ ctxptr make_context(bool set_console){
   global->Set(ToJSString("print"), v8::FunctionTemplate::New(isolate, ConsoleLog));
   v8::Local<v8::Context> context = v8::Context::New(isolate, NULL, global);
   v8::Context::Scope context_scope(context);
-    v8::Local<v8::String> console = ToJSString("console");
-    // need to unset global.console, or it will crash in some V8 versions (e.g. Fedora)
-    // See: https://stackoverflow.com/questions/49620965/v8-cannot-set-objecttemplate-with-name-console
-    if(set_console){
-      if(context->Global()->Has(context, console).FromMaybe(true)){
-        if(context->Global()->Delete(context, console).IsNothing())
-          Rcpp::warning("Could not delete console.");
-      }
-      if(context->Global()->Set(context, console, console_template()).IsNothing())
-        Rcpp::warning("Could not set console.");
+  v8::Local<v8::String> console = ToJSString("console");
+  // need to unset global.console, or it will crash in some V8 versions (e.g. Fedora)
+  // See: https://stackoverflow.com/questions/49620965/v8-cannot-set-objecttemplate-with-name-console
+  if(set_console){
+    if(context->Global()->Has(context, console).FromMaybe(true)){
+      if(context->Global()->Delete(context, console).IsNothing())
+        Rcpp::warning("Could not delete console.");
     }
+    if(context->Global()->Set(context, console, console_template()).IsNothing())
+      Rcpp::warning("Could not set console.");
+  }
   v8::Persistent<v8::Context> *ptr = new v8::Persistent<v8::Context>(isolate, context);
   return ctxptr(ptr);
 }
