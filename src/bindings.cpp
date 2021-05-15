@@ -221,6 +221,7 @@ Rcpp::RObject context_eval(Rcpp::String src, Rcpp::XPtr< v8::Persistent<v8::Cont
   src.set_encoding(CE_UTF8);
 
   // Create a scope
+  v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Context::Scope context_scope(ctx.checked_get()->Get(isolate));
@@ -261,6 +262,7 @@ bool write_array_buffer(Rcpp::String key, Rcpp::RawVector data, Rcpp::XPtr< v8::
     throw std::runtime_error("v8::Context has been disposed.");
 
   // Create a scope
+  v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::Context> context = ctx.checked_get()->Get(isolate);
@@ -295,6 +297,7 @@ bool context_validate(Rcpp::String src, Rcpp::XPtr< v8::Persistent<v8::Context> 
   src.set_encoding(CE_UTF8);
 
   // Create a scope
+  v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Context::Scope context_scope(ctx.checked_get()->Get(isolate));
@@ -330,6 +333,7 @@ v8::Local<v8::Object> console_template(){
 // [[Rcpp::export]]
 ctxptr make_context(bool set_console){
 
+  v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
@@ -338,17 +342,18 @@ ctxptr make_context(bool set_console){
   global->Set(ToJSString("print"), v8::FunctionTemplate::New(isolate, ConsoleLog));
   v8::Local<v8::Context> context = v8::Context::New(isolate, NULL, global);
   v8::Context::Scope context_scope(context);
-
-  v8::Local<v8::String> console = ToJSString("console");
-  // need to unset global.console, or it will crash in some V8 versions (e.g. Fedora)
-  // See: https://stackoverflow.com/questions/49620965/v8-cannot-set-objecttemplate-with-name-console
-  if(set_console){
-    if(context->Global()->Has(context, console).FromMaybe(true)){
-      if(context->Global()->Delete(context, console).IsNothing())
-        Rcpp::warning("Could not delete console.");
+  {
+    v8::Local<v8::String> console = ToJSString("console");
+    // need to unset global.console, or it will crash in some V8 versions (e.g. Fedora)
+    // See: https://stackoverflow.com/questions/49620965/v8-cannot-set-objecttemplate-with-name-console
+    if(set_console){
+      if(context->Global()->Has(context, console).FromMaybe(true)){
+        if(context->Global()->Delete(context, console).IsNothing())
+          Rcpp::warning("Could not delete console.");
+      }
+      if(context->Global()->Set(context, console, console_template()).IsNothing())
+        Rcpp::warning("Could not set console.");
     }
-    if(context->Global()->Set(context, console, console_template()).IsNothing())
-      Rcpp::warning("Could not set console.");
   }
   v8::Persistent<v8::Context> *ptr = new v8::Persistent<v8::Context>(isolate, context);
   return ctxptr(ptr);

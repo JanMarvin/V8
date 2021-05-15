@@ -2,8 +2,9 @@ context("serialize")
 
 test_that("Types can be serialized",{
   ctx <- V8::v8()
+  ct <- V8::v8()
   expect_equal(ctx$eval('function I(x){return x}'), 'undefined')
-  expect_null(ctx$eval("undefined", TRUE))
+  expect_null(ct$eval("undefined", TRUE))
   expect_null(ctx$eval("null", TRUE))
   expect_equal(ctx$eval("[]", TRUE), "[]")
   expect_equal(ctx$eval('I({})', TRUE), "{}")
