@@ -1,4 +1,5 @@
 #include <libplatform/libplatform.h>
+#include <filesystem>
 #include "V8_types.h"
 
 /* used for setting icu data below */
@@ -40,6 +41,12 @@ static void fatal_cb(const char* location, const char* message){
   REprintf("V8 FATAL ERROR in %s: %s", location, message);
 }
 
+int is_install() {
+  std::string path = std::filesystem::current_path();
+  // Rcpp::Rcout << path << std::endl;
+  return path.find("00LOCK-V8/00new/V8/libs") == 1;
+}
+
 // [[Rcpp::init]]
 void start_v8_isolate(void *dll){
 
@@ -48,11 +55,13 @@ void start_v8_isolate(void *dll){
   Rcpp::Function sys_setenv("Sys.setenv");
 
   v8_running = sys_getenv("V8_running");
+  // Rf_PrintValue(v8_running);
   bool is_v8_running = atoi(Rcpp::as<std::string>(v8_running).c_str());
 
-  Rcpp::Rcout << "V8 Status " << is_v8_running << std::endl;
+  // Rcpp::Rcout << "V8 Status " << is_v8_running << std::endl;
+  // Rcpp::Rcout << "is_install "  << is_install() << std::endl;
 
-  // if (!is_v8_running) {
+  if (!is_v8_running || is_install()) {
 #ifdef V8_ICU_DATA_PATH
     // Needed if V8 is built with bundled ICU. Check CRAN package 'dagitty' to test.
     if( access( V8_ICU_DATA_PATH, F_OK ) != -1 ) {
@@ -68,7 +77,7 @@ void start_v8_isolate(void *dll){
 #endif
     v8::V8::Initialize();
     sys_setenv(Rcpp::Named("V8_running",1));
-  // }
+  }
 
 }
 
@@ -303,7 +312,6 @@ v8::Local<v8::Object> console_template(){
 // [[Rcpp::export]]
 ctxptr make_context(bool set_console){
 
-  Rcpp::Rcout << "-------------------------------ONE." << std::endl;
   v8::Isolate::CreateParams create_params;
   create_params.array_buffer_allocator =
     v8::ArrayBuffer::Allocator::NewDefaultAllocator();

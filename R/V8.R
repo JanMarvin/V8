@@ -356,3 +356,26 @@ generate_rd <- function(){
   out <- paste(utils::capture.output(print(v8())), collapse = "\n")
   paste("\\preformatted{", "## ctx <- v8()", out, "}\n", sep = "\n")
 }
+
+#' function to check if V8 is loaded
+is_loaded <- function(onload) {
+
+  dlls <- getLoadedDLLs()
+  V8_dlls <- dlls[names(dlls) == "V8"]
+  dirnames <- sapply(V8_dlls, FUN = function(x) dirname(x[["path"]]))
+
+  # print(.libPaths())
+  # print(getwd())
+  # print(dirnames)
+
+  # "00LOCK-V8/00new/V8/libs"
+
+  if (onload) {
+    found <- as.integer(sum(sapply(.libPaths(), grepl, x = dirnames)) > 0)
+  } else {
+    found <- as.integer(sum(grepl(getwd(), dirnames)) > 0)
+  }
+  # message(found)
+
+  found
+}
