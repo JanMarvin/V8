@@ -76,6 +76,24 @@ void start_v8_isolate(void *dll){
     v8::V8::InitializePlatform(v8::platform::CreateDefaultPlatform());
 #endif
     v8::V8::Initialize();
+
+    v8::Isolate::CreateParams create_params;
+    create_params.array_buffer_allocator =
+      v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+    isolate = v8::Isolate::New(create_params);
+    if(!isolate)
+      throw std::runtime_error("Failed to initiate V8 isolate");
+    isolate->AddMessageListener(message_cb);
+    isolate->SetFatalErrorHandler(fatal_cb);
+
+#ifdef __linux__
+    /* This should fix packages hitting stack limit on Fedora.
+     * CurrentStackPosition trick copied from chromium. */
+    static const int kWorkerMaxStackSize = 2000 * 1024;
+    uintptr_t CurrentStackPosition = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
+    isolate->SetStackLimit(CurrentStackPosition - kWorkerMaxStackSize);
+#endif
+
     sys_setenv(Rcpp::Named("V8_running",1));
   }
 
@@ -311,23 +329,6 @@ v8::Local<v8::Object> console_template(){
 
 // [[Rcpp::export]]
 ctxptr make_context(bool set_console){
-
-  v8::Isolate::CreateParams create_params;
-  create_params.array_buffer_allocator =
-    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-  isolate = v8::Isolate::New(create_params);
-  if(!isolate)
-    throw std::runtime_error("Failed to initiate V8 isolate");
-  isolate->AddMessageListener(message_cb);
-  isolate->SetFatalErrorHandler(fatal_cb);
-
-#ifdef __linux__
-  /* This should fix packages hitting stack limit on Fedora.
-   * CurrentStackPosition trick copied from chromium. */
-  static const int kWorkerMaxStackSize = 2000 * 1024;
-  uintptr_t CurrentStackPosition = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
-  isolate->SetStackLimit(CurrentStackPosition - kWorkerMaxStackSize);
-#endif
 
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
