@@ -1,5 +1,6 @@
 #include <libplatform/libplatform.h>
 // #include <filesystem>
+#include <unistd.h>
 #include "V8_types.h"
 
 /* used for setting icu data below */
@@ -55,12 +56,32 @@ Rcpp::Function sys_setenv("Sys.setenv");
 void start_v8_isolate(void *dll){
 
   SEXP v8_running = {0};
+  SEXP v8_pid     = {0};
+
+  if (isolate == nullptr)
+  Rcpp::Rcout << "V8 is running" << std::endl;
+  Rcpp::Rcout << dll << std::endl;
+
+  v8_pid = sys_getenv("V8_pid");
+  pid_t old_v8_pid = atoi(Rcpp::as<std::string>(v8_pid).c_str());
+  Rcpp::Rcout << "V8_pid " << old_v8_pid << std::endl;
+
+  pid_t new_v8_pid = getpid();
+  Rprintf("pid: %d \n", new_v8_pid);
+
+  sys_setenv(Rcpp::Named("V8_pid", new_v8_pid));
 
   v8_running = sys_getenv("V8_running");
   // Rf_PrintValue(v8_running);
   bool is_v8_running = atoi(Rcpp::as<std::string>(v8_running).c_str());
+  Rcpp::Rcout << "V8 Status: " << is_v8_running << std::endl;
 
-  if (!is_v8_running) {
+  bool is_v8_pid = (new_v8_pid == old_v8_pid);
+  Rcpp::Rcout << "V8 pids: " << is_v8_pid << " (" << new_v8_pid << "/" << old_v8_pid <<")"<< std::endl;
+
+
+  if (!is_v8_pid) {
+    Rcpp::Rcout << "Initializing V8" << std::endl;
 
 #ifdef V8_ICU_DATA_PATH
     // Needed if V8 is built with bundled ICU. Check CRAN package 'dagitty' to test.
