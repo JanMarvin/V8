@@ -73,14 +73,19 @@ void start_v8_isolate(void *dll){
 
   v8_running = sys_getenv("V8_running");
   // Rf_PrintValue(v8_running);
-  bool is_v8_running = atoi(Rcpp::as<std::string>(v8_running).c_str());
+  bool is_v8_running = atoi(Rcpp::as<std::string>(v8_running).c_str()) == 1;
   Rcpp::Rcout << "V8 Status: " << is_v8_running << std::endl;
 
   bool is_v8_pid = (new_v8_pid == old_v8_pid);
   Rcpp::Rcout << "V8 pids: " << is_v8_pid << " (" << new_v8_pid << "/" << old_v8_pid <<")"<< std::endl;
 
+  // if (is_v8_pid && !is_v8_running) {
+  //   sys_setenv(Rcpp::Named("V8_running",1));
+  //   is_v8_running = 0;
+  // }
 
-  if (!is_v8_pid) {
+
+  if (!is_v8_pid ) { //&& !is_v8_running
     Rcpp::Rcout << "Initializing V8" << std::endl;
 
 #ifdef V8_ICU_DATA_PATH
@@ -112,7 +117,6 @@ void start_v8_isolate(void *dll){
     isolate->SetStackLimit(CurrentStackPosition - kWorkerMaxStackSize);
 #endif
 
-    sys_setenv(Rcpp::Named("V8_running",1));
   }
 
 }
@@ -353,6 +357,9 @@ ctxptr make_context(bool set_console){
 
   v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
+  // bool is_dead = v8::Isolate::GetCurrent()->IsDead();
+  // Rcpp::Rcout << "Is it dead Jim? It's " << is_dead << std::endl;
+  // Rcpp::Rcout << "Current Isolate: " << v8::Isolate::GetCurrent() << std::endl;
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
 
