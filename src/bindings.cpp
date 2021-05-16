@@ -62,32 +62,39 @@ void start_v8_isolate(void *dll){
 
   // Rcpp::Rcout << "V8 Status " << is_v8_running << std::endl;
   // Rcpp::Rcout << "is_install "  << is_install() << std::endl;
+  if (!is_v8_running) {
 
-  // if (!is_v8_running || is_install()) {
-  platform = v8::platform::NewDefaultPlatform();
-  v8::V8::InitializePlatform(platform.get());
-  // platform.release(); //UBSAN complains if platform is destroyed when out of scope
-  v8::V8::Initialize();
+#ifdef V8_ICU_DATA_PATH
+    // Needed if V8 is built with bundled ICU. Check CRAN package 'dagitty' to test.
+    if( access( V8_ICU_DATA_PATH, F_OK ) != -1 ) {
+      v8::V8::InitializeICUDefaultLocation(V8_ICU_DATA_PATH);
+    }
+#endif
 
-  v8::Isolate::CreateParams create_params;
-  create_params.array_buffer_allocator =
-    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-  isolate = v8::Isolate::New(create_params);
-  if(!isolate)
-    throw std::runtime_error("Failed to initiate V8 isolate");
-  isolate->AddMessageListener(message_cb);
-  isolate->SetFatalErrorHandler(fatal_cb);
+    platform = v8::platform::NewDefaultPlatform();
+    v8::V8::InitializePlatform(platform.get());
+    // platform.release(); //UBSAN complains if platform is destroyed when out of scope
+    v8::V8::Initialize();
 
-  #ifdef __linux__
-      /* This should fix packages hitting stack limit on Fedora.
-       * CurrentStackPosition trick copied from chromium. */
-      static const int kWorkerMaxStackSize = 2000 * 1024;
-      uintptr_t CurrentStackPosition = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
-      isolate->SetStackLimit(CurrentStackPosition - kWorkerMaxStackSize);
-  #endif
+    v8::Isolate::CreateParams create_params;
+    create_params.array_buffer_allocator =
+      v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+    isolate = v8::Isolate::New(create_params);
+    if(!isolate)
+      throw std::runtime_error("Failed to initiate V8 isolate");
+    isolate->AddMessageListener(message_cb);
+    isolate->SetFatalErrorHandler(fatal_cb);
 
-  sys_setenv(Rcpp::Named("V8_running",1));
-  // }
+#ifdef __linux__
+    /* This should fix packages hitting stack limit on Fedora.
+     * CurrentStackPosition trick copied from chromium. */
+    static const int kWorkerMaxStackSize = 2000 * 1024;
+    uintptr_t CurrentStackPosition = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
+    isolate->SetStackLimit(CurrentStackPosition - kWorkerMaxStackSize);
+#endif
+
+    sys_setenv(Rcpp::Named("V8_running",1));
+  }
 
 }
 
