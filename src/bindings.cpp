@@ -22,10 +22,10 @@ void ctx_finalizer( v8::Persistent<v8::Context>* context ){
 
 static v8::Isolate* isolate = NULL;
 
-// Extracts a C string from a V8 Utf8Value.
-static const char* ToCString(const v8::String::Utf8Value& value) {
-  return *value ? *value : "<string conversion failed>";
-}
+// // Extracts a C string from a V8 Utf8Value.
+// static const char* ToCString(const v8::String::Utf8Value& value) {
+//   return *value ? *value : "<string conversion failed>";
+// }
 
 static v8::Local<v8::String> ToJSString(const char * str){
   v8::MaybeLocal<v8::String> out = v8::String::NewFromUtf8(isolate, str, v8::NewStringType::kNormal);
@@ -34,7 +34,7 @@ static v8::Local<v8::String> ToJSString(const char * str){
 
 static void message_cb(v8::Local<v8::Message> message, v8::Local<v8::Value> data){
   v8::String::Utf8Value str(isolate, message->Get());
-  REprintf("V8 MESSAGE (level %d): %s", message->ErrorLevel(), ToCString(str));
+  REprintf("V8 MESSAGE (level %d): %s", message->ErrorLevel(), *str);
 }
 
 static void fatal_cb(const char* location, const char* message){
@@ -57,11 +57,9 @@ void start_v8_isolate(void *dll){
   SEXP v8_running = {0};
 
   v8_running = sys_getenv("V8_running");
-  Rf_PrintValue(v8_running);
+  // Rf_PrintValue(v8_running);
   bool is_v8_running = atoi(Rcpp::as<std::string>(v8_running).c_str());
 
-  // Rcpp::Rcout << "V8 Status " << is_v8_running << std::endl;
-  // Rcpp::Rcout << "is_install "  << is_install() << std::endl;
   if (!is_v8_running) {
 
 #ifdef V8_ICU_DATA_PATH
@@ -110,7 +108,7 @@ static void ConsoleLog(const v8::FunctionCallbackInfo<v8::Value>& args) {
   for (int i=0; i < args.Length(); i++) {
     v8::HandleScope handle_scope(args.GetIsolate());
     v8::String::Utf8Value str(args.GetIsolate(), args[i]);
-    Rprintf("%s", ToCString(str));
+    Rprintf("%s", *str);
   }
   Rprintf("\n");
   args.GetReturnValue().Set(v8::Undefined(args.GetIsolate()));
@@ -121,7 +119,7 @@ static void ConsoleWarn(const v8::FunctionCallbackInfo<v8::Value>& args) {
   for (int i=0; i < args.Length(); i++) {
     v8::HandleScope handle_scope(args.GetIsolate());
     v8::String::Utf8Value str(args.GetIsolate(), args[i]);
-    Rf_warningcall_immediate(R_NilValue, ToCString(str));
+    Rf_warningcall_immediate(R_NilValue, *str);
   }
   Rprintf("\n");
   args.GetReturnValue().Set(v8::Undefined(args.GetIsolate()));
@@ -146,15 +144,15 @@ void r_callback(std::string fun, const v8::FunctionCallbackInfo<v8::Value>& args
     } else if(args.Length() == 2 || args[2]->IsUndefined()) {
       v8::Local<v8::Object> obj1 = args[1]->ToObject(args.GetIsolate()->GetCurrentContext()).ToLocalChecked();
       v8::String::Utf8Value arg1(args.GetIsolate(), v8::JSON::Stringify(args.GetIsolate()->GetCurrentContext(), obj1).ToLocalChecked());
-      Rcpp::String json(ToCString(arg1));
+      Rcpp::String json(*arg1);
       out = r_call(fun, json);
     } else {
       v8::Local<v8::Object> obj1 = args[1]->ToObject(args.GetIsolate()->GetCurrentContext()).ToLocalChecked();
       v8::Local<v8::Object> obj2 = args[2]->ToObject(args.GetIsolate()->GetCurrentContext()).ToLocalChecked();
       v8::String::Utf8Value arg1(args.GetIsolate(), v8::JSON::Stringify(args.GetIsolate()->GetCurrentContext(), obj1).ToLocalChecked());
       v8::String::Utf8Value arg2(args.GetIsolate(), v8::JSON::Stringify(args.GetIsolate()->GetCurrentContext(), obj2).ToLocalChecked());
-      Rcpp::String val(ToCString(arg1));
-      Rcpp::String json(ToCString(arg2));
+      Rcpp::String val(*arg1);
+      Rcpp::String json(*arg2);
       out = r_call(fun, val, json);
     }
     args.GetReturnValue().Set( v8::JSON::Parse(args.GetIsolate()->GetCurrentContext(), ToJSString(std::string(out[0]).c_str())).ToLocalChecked());
@@ -220,7 +218,7 @@ Rcpp::RObject context_eval(Rcpp::String src, Rcpp::XPtr< v8::Persistent<v8::Cont
   src.set_encoding(CE_UTF8);
 
   // Create a scope
-  // v8::Locker locker(isolate);
+  v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Context::Scope context_scope(ctx.checked_get()->Get(isolate));
@@ -230,7 +228,7 @@ Rcpp::RObject context_eval(Rcpp::String src, Rcpp::XPtr< v8::Persistent<v8::Cont
   v8::Local<v8::Script> script = compile_source(src, ctx.checked_get()->Get(isolate));
   if(script.IsEmpty()) {
     v8::String::Utf8Value exception(isolate, trycatch.Exception());
-    throw std::invalid_argument(ToCString(exception));
+    throw std::invalid_argument(*exception);
   }
 
   // Run the script to get the result.
@@ -238,7 +236,7 @@ Rcpp::RObject context_eval(Rcpp::String src, Rcpp::XPtr< v8::Persistent<v8::Cont
   v8::Local<v8::Value> result = safe_to_local(res);
   if(result.IsEmpty()){
     v8::String::Utf8Value exception(isolate, trycatch.Exception());
-    throw std::runtime_error(ToCString(exception));
+    throw std::runtime_error(*exception);
   }
 
   // Serialize to JSON or Raw
@@ -261,7 +259,7 @@ bool write_array_buffer(Rcpp::String key, Rcpp::RawVector data, Rcpp::XPtr< v8::
     throw std::runtime_error("v8::Context has been disposed.");
 
   // Create a scope
-  // v8::Locker locker(isolate);
+  v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::Context> context = ctx.checked_get()->Get(isolate);
@@ -296,7 +294,7 @@ bool context_validate(Rcpp::String src, Rcpp::XPtr< v8::Persistent<v8::Context> 
   src.set_encoding(CE_UTF8);
 
   // Create a scope
-  // v8::Locker locker(isolate);
+  v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Context::Scope context_scope(ctx.checked_get()->Get(isolate));
@@ -332,7 +330,7 @@ v8::Local<v8::Object> console_template(){
 // [[Rcpp::export]]
 ctxptr make_context(bool set_console){
 
-  // v8::Locker locker(isolate);
+  v8::Locker locker(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
@@ -341,16 +339,18 @@ ctxptr make_context(bool set_console){
   global->Set(ToJSString("print"), v8::FunctionTemplate::New(isolate, ConsoleLog));
   v8::Local<v8::Context> context = v8::Context::New(isolate, NULL, global);
   v8::Context::Scope context_scope(context);
-  v8::Local<v8::String> console = ToJSString("console");
-  // need to unset global.console, or it will crash in some V8 versions (e.g. Fedora)
-  // See: https://stackoverflow.com/questions/49620965/v8-cannot-set-objecttemplate-with-name-console
-  if(set_console){
-    if(context->Global()->Has(context, console).FromMaybe(true)){
-      if(context->Global()->Delete(context, console).IsNothing())
-        Rcpp::warning("Could not delete console.");
+  {
+    v8::Local<v8::String> console = ToJSString("console");
+    // need to unset global.console, or it will crash in some V8 versions (e.g. Fedora)
+    // See: https://stackoverflow.com/questions/49620965/v8-cannot-set-objecttemplate-with-name-console
+    if(set_console){
+      if(context->Global()->Has(context, console).FromMaybe(true)){
+        if(context->Global()->Delete(context, console).IsNothing())
+          Rcpp::warning("Could not delete console.");
+      }
+      if(context->Global()->Set(context, console, console_template()).IsNothing())
+        Rcpp::warning("Could not set console.");
     }
-    if(context->Global()->Set(context, console, console_template()).IsNothing())
-      Rcpp::warning("Could not set console.");
   }
   v8::Persistent<v8::Context> *ptr = new v8::Persistent<v8::Context>(isolate, context);
   return ctxptr(ptr);
