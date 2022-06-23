@@ -69,6 +69,12 @@ void start_v8_isolate(void *dll){
   platformptr = v8::platform::CreateDefaultPlatform();
   v8::V8::InitializePlatform(platformptr);
 #endif
+
+#ifdef V8_ENABLE_SANDBOX
+  if (!v8::V8::InitializeSandbox()) {
+    REprintf("Error initializing the V8 sandbox\n");
+  }
+#endif
   v8::V8::Initialize();
   v8::Isolate::CreateParams create_params;
   create_params.array_buffer_allocator =
