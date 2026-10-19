@@ -401,6 +401,52 @@ static const char* native_encode_js = R"JS(
     return (new Function("rows", src))(rows);
   }
 
+  function scan_columns(rows, keys) {
+    const p = keys.length;
+    let src = "\"use strict\";\nconst n = rows.length;\n";
+    for (let j = 0; j < p; j++)
+      src += "const f" + j + " = new Float64Array(n); let s" + j + " = null, l" + j + " = null, h" + j + " = null, m" + j + " = null, b" + j + " = 0, x" + j + " = false;\n";
+    src += "for (let i = 0; i < n; i++) {\nconst r = rows[i];\nlet v;\n";
+    src += "if (r === null) {\n";
+    for (let j = 0; j < p; j++)
+      src += "if (m" + j + " === null) m" + j + " = new Uint8Array(n); m" + j + "[i] = 1;\n";
+    src += "continue;\n}\n";
+    for (let j = 0; j < p; j++) {
+      if (keys[j] === "__proto__") continue;
+      src += "v = r[" + JSON.stringify(keys[j]) + "];\n" +
+        "if (typeof v === \"number\") { f" + j + "[i] = v; b" + j + " |= 1; if (!x" + j + " && (v !== (v | 0) || v === -2147483648)) x" + j + " = true; }\n" +
+        "else if (v === undefined || v === null) { if (m" + j + " === null) m" + j + " = new Uint8Array(n); m" + j + "[i] = 1; }\n" +
+        "else if (typeof v === \"string\") { if (s" + j + " === null) { s" + j + " = new Int32Array(n); l" + j + " = []; h" + j + " = new Map(); } " +
+        "let c = h" + j + ".get(v); if (c === undefined) { l" + j + ".push(v); c = l" + j + ".length; h" + j + ".set(v, c); } s" + j + "[i] = c; b" + j + " |= 4; }\n" +
+        "else if (typeof v === \"boolean\") { f" + j + "[i] = v ? 1 : 0; b" + j + " |= 2; }\n" +
+        "else b" + j + " |= 8;\n";
+    }
+    src += "}\nreturn [";
+    for (let j = 0; j < p; j++) {
+      src += (j ? ", " : "") + ((keys[j] === "__proto__") ? "null" : "[f" + j + ", s" + j + ", m" + j + ", b" + j + ", x" + j + ", l" + j + "]");
+    }
+    src += "];\n";
+    const states = (new Function("rows", src))(rows);
+    const n = rows.length;
+    const out = new Array(p);
+    for (let j = 0; j < p; j++) {
+      const st = states[j];
+      if (st === null || (st[3] & 8) !== 0 || ((st[3] & 4) !== 0 && (st[3] & 3) !== 0)) {
+        out[j] = null;
+        continue;
+      }
+      const f = st[0], mask = st[2], kind = st[3];
+      if (kind & 4) {
+        out[j] = [4, st[1], st[5]];
+      } else if (kind & 1) {
+        out[j] = st[4] ? [3, f, mask] : [2, Int32Array.from(f), mask];
+      } else {
+        out[j] = [1, Int32Array.from(f), mask];
+      }
+    }
+    return out;
+  }
+
   function frame(vals) {
     const n = vals.length;
     const rows = new Array(n);
@@ -440,7 +486,12 @@ static const char* native_encode_js = R"JS(
     const p = keys.length;
     const columns = new Array(p);
     enter();
+    const fast = scan_columns(rows, keys);
     for (let j = 0; j < p; j++) {
+      if (fast[j] !== null) {
+        columns[j] = fast[j];
+        continue;
+      }
       const col = column(rows, keys[j]);
       const vec = vector(col);
       if (vec !== null) {
