@@ -12,12 +12,12 @@ output:
 vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteIndexEntry{Introduction to V8 for R}
-  \usepackage[utf8]{inputenc} 
+  \usepackage[utf8]{inputenc}
 ---
 
 ```{r, echo = FALSE, message = FALSE}
 knitr::opts_chunk$set(comment = "")
-library(V8)
+library(V8n)
 ```
 
 
@@ -107,7 +107,7 @@ js = 'function test_number(x){
 }'
 
 # Call will just show a promise
-ctx <- V8::v8()
+ctx <- V8n::v8()
 ctx$eval(js)
 
 # A promise does not return anything in itself:
@@ -234,7 +234,7 @@ ct$validate("!function(x){2*x}")
 
 ## Callback To R
 
-A recently added feature is to interact with R from within JavaScript using the `console.r` API`. This is most easily demonstrated via the interactive console. 
+A recently added feature is to interact with R from within JavaScript using the `console.r` API`. This is most easily demonstrated via the interactive console.
 
 ```{r, eval=FALSE}
 ctx <- v8()

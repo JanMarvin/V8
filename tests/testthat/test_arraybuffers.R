@@ -2,7 +2,7 @@ context("JS ArrayBuffers")
 
 test_that("Reading and writing raw buffers", {
 
-  ctx <- V8::v8()
+  ctx <- V8n::v8()
   ctx$eval('
 var data = [1,2,3]
 var intArray = new Uint8Array( data )
@@ -26,13 +26,13 @@ var floatArray = new Float32Array( [0, Math.PI])')
 })
 
 test_that("Roundtrip ArrayBuffers", {
-  ctx <- V8::v8()
+  ctx <- V8n::v8()
   ctx$assign('iris', serialize(iris, NULL))
   expect_equal(unserialize(ctx$get('iris')), iris)
 })
 
 test_that("Large ArrayBuffer", {
-  ctx <- V8::v8()
+  ctx <- V8n::v8()
   x <- serialize(rnorm(1e6), NULL)
   ctx$assign('x', x)
   y <- ctx$get('x')

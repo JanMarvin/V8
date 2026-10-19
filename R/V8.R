@@ -16,7 +16,7 @@
 #' for example: `ct$eval("Object.keys(this)")`.
 #'
 #' @section V8 Context Methods:
-#' \Sexpr[results=rd, stage=build, echo=FALSE]{V8:::generate_rd()}
+#' \Sexpr[results=rd, stage=build, echo=FALSE]{V8n:::generate_rd()}
 #'
 #' The `ct$eval` method evaluates a string of JavaScript code in the same way
 #' as `eval` in JavaScript. By default `eval()` returns a string with
@@ -75,7 +75,7 @@
 #'
 #' @section Note about Linux and Legacy V8 engines:
 #' This R package can be compiled against modern (V8 version 6+) libv8 API, or the legacy
-#' libv8 API (V8 version 3.15 and below). You can check `V8::engine_info()` to see the version
+#' libv8 API (V8 version 3.15 and below). You can check `V8n::engine_info()` to see the version
 #' that is running. The legacy version does not support modern JS (ES6) or WASM, but it is
 #' still the default on older versions of Ubuntu and CentOS. The latest versions of all major
 #' Linux distributions now provide a modern version of V8. For Ubuntu 16.04 and 18.04
@@ -288,7 +288,7 @@ v8 <- function(global = "global", console = TRUE, ..., backend = getOption("V8.b
       if(has_history){
         savehistory()
         on.exit(loadhistory(), add = TRUE)
-        histfile <- ".V8history"
+        histfile <- ".V8nhistory"
         if(file.exists(histfile)){
           loadhistory(histfile)
         } else {
@@ -328,7 +328,7 @@ v8 <- function(global = "global", console = TRUE, ..., backend = getOption("V8.b
     #reg.finalizer(environment(), function(e){}, TRUE)
     reset()
     lockEnvironment(environment(), TRUE)
-    structure(environment(), class=c("V8", "environment"))
+    structure(environment(), class=c("V8n", "environment"))
   })
 }
 
@@ -508,7 +508,7 @@ get_str_output <- function(str){
 }
 
 #' @export
-`$.V8` <- function(x, y){
+`$.V8n` <- function(x, y){
   if(!exists(y, x, inherits = FALSE)){
     stop("V8 object has no field '", y, "'")
   }
@@ -516,18 +516,18 @@ get_str_output <- function(str){
 }
 
 #' @export
-`[[.V8` <- `$.V8`
+`[[.V8n` <- `$.V8n`
 
 #' @export
-`[.V8` <- `$.V8`
+`[.V8n` <- `$.V8n`
 
 #' @export
-names.V8 <- function(x, ...){
+names.V8n <- function(x, ...){
   ls(x, ...)
 }
 
 #' @export
-print.V8 <- function(x, ...){
+print.V8n <- function(x, ...){
   if(context_null(get("context", x))){
     cat("This context has been disposed.")
   } else {
@@ -542,14 +542,14 @@ print.V8 <- function(x, ...){
 }
 
 #' @export
-#' @rawNamespace if (getRversion() >= "4.3.0") S3method(base::`@`, V8)
-`@.V8` <- function(object, name, ...){
+#' @rawNamespace if (getRversion() >= "4.3.0") S3method(base::`@`, V8n)
+`@.V8n` <- function(object, name, ...){
   object[[name]]
 }
 
 ### enable tab completion
-#' @rawNamespace if (getRversion() >= "4.3.0" && !is.null(asNamespace("utils")$.AtNames)) S3method(utils::.AtNames,V8)
-.AtNames.V8 <- function(x, pattern) {
+#' @rawNamespace if (getRversion() >= "4.3.0" && !is.null(asNamespace("utils")$.AtNames)) S3method(utils::.AtNames,V8n)
+.AtNames.V8n <- function(x, pattern) {
   asNamespace("utils")$findMatches(pattern, ls(x))
 }
 

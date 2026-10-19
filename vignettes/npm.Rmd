@@ -4,7 +4,7 @@ date: "`r Sys.Date()`"
 vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteIndexEntry{Using NPM packages in V8}
-  \usepackage[utf8]{inputenc} 
+  \usepackage[utf8]{inputenc}
 output:
   html_document:
     fig_caption: false
@@ -17,14 +17,14 @@ output:
 
 ```{r, echo = FALSE, message = FALSE}
 knitr::opts_chunk$set(comment = "")
-library(V8)
+library(V8n)
 ```
 
 ## What is V8 (not)
 
-The R package V8 provides a direct interface to Google's high performance JavaScript engine. The V8 engine is also used in Chrome, NodeJS, MongoDB, and many other software. 
+The R package V8 provides a direct interface to Google's high performance JavaScript engine. The V8 engine is also used in Chrome, NodeJS, MongoDB, and many other software.
 
-However each of these programs actually implements most JavaScript functionality on top of V8. The naked V8 engine only provides pure ECMAscript, which does not include a lot of things that you might be used to. There is no I/O (network/disk) and no DOM (window). 
+However each of these programs actually implements most JavaScript functionality on top of V8. The naked V8 engine only provides pure ECMAscript, which does not include a lot of things that you might be used to. There is no I/O (network/disk) and no DOM (window).
 
 Recent versions of V8 do have an event loop (required for async in ES6) and WASM support.
 
@@ -55,7 +55,7 @@ If no bundle is available for your library, you might be able to create one from
 
 ![browserify logo](http://jeroen.github.io/V8/browserify.png)
 
-[Browserify](https://browserify.org/) is a tool to bundle an npm package with all of its dependencies into a single js file that does not require disk access. It is mainly designed to make npm packages suitable for use on a webpage but it is useful with embedded V8 as well. 
+[Browserify](https://browserify.org/) is a tool to bundle an npm package with all of its dependencies into a single js file that does not require disk access. It is mainly designed to make npm packages suitable for use on a webpage but it is useful with embedded V8 as well.
 
 ## Browserify example: js-beautify
 

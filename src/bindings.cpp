@@ -298,7 +298,7 @@ static void ConsoleError(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 static void r_callback_native(std::string cb, const v8::FunctionCallbackInfo<v8::Value>& args, v8::Local<v8::Context> context) {
   try {
-    Rcpp::Environment ns = Rcpp::Environment::namespace_env("V8");
+    Rcpp::Environment ns = Rcpp::Environment::namespace_env("V8n");
     Rcpp::Function r_fun(ns.get(cb + "_native"));
     v8::String::Utf8Value arg0(args.GetIsolate(), args[0]);
     Rcpp::String fun(ToCString(arg0), CE_UTF8);
@@ -330,7 +330,7 @@ void r_callback(std::string cb, const v8::FunctionCallbackInfo<v8::Value>& args)
     return;
   }
   try {
-    Rcpp::Function r_call = Rcpp::Environment::namespace_env("V8")[cb];
+    Rcpp::Function r_call = Rcpp::Environment::namespace_env("V8n")[cb];
     v8::String::Utf8Value arg0(args.GetIsolate(), args[0]);
     Rcpp::String fun(*arg0);
     Rcpp::CharacterVector out;

@@ -1,4 +1,4 @@
 library(testthat)
-library(V8)
+library(V8n)
 
-test_check("V8")
+test_check("V8n")

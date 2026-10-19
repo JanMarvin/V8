@@ -46,7 +46,7 @@ for example: \code{ct$eval("Object.keys(this)")}.
 }
 \section{V8 Context Methods}{
 
-\Sexpr[results=rd, stage=build, echo=FALSE]{V8:::generate_rd()}
+\Sexpr[results=rd, stage=build, echo=FALSE]{V8n:::generate_rd()}
 
 The \code{ct$eval} method evaluates a string of JavaScript code in the same way
 as \code{eval} in JavaScript. By default \code{eval()} returns a string with
@@ -109,7 +109,7 @@ or emscripten.
 \section{Note about Linux and Legacy V8 engines}{
 
 This R package can be compiled against modern (V8 version 6+) libv8 API, or the legacy
-libv8 API (V8 version 3.15 and below). You can check \code{V8::engine_info()} to see the version
+libv8 API (V8 version 3.15 and below). You can check \code{V8n::engine_info()} to see the version
 that is running. The legacy version does not support modern JS (ES6) or WASM, but it is
 still the default on older versions of Ubuntu and CentOS. The latest versions of all major
 Linux distributions now provide a modern version of V8. For Ubuntu 16.04 and 18.04

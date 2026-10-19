@@ -1,6 +1,6 @@
 context("V8 Callback to R")
 
-ctx <- V8::v8()
+ctx <- V8n::v8()
 
 test_that("console.r.get", {
   ctx$eval('//get a data frame
