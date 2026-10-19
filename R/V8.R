@@ -387,6 +387,8 @@ from_json_options <- function(options){
 }
 
 base64_encode <- function(x){
+  if("base64_encode" %in% getNamespaceExports("tools"))
+    return(getExportedValue("tools", "base64_encode")(x = x))
   chars <- c(LETTERS, letters, 0:9, "+", "/")
   pad <- (3 - length(x) %% 3) %% 3
   m <- matrix(c(as.integer(x), integer(pad)), nrow = 3)
