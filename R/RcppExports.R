@@ -2,34 +2,34 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 version <- function() {
-    .Call(`_V8_version`)
+    .Call(`_V8n_version`)
 }
 
 native_plain <- function(x) {
-    .Call(`_V8_native_plain`, x)
+    .Call(`_V8n_native_plain`, x)
 }
 
 write_native <- function(key, value, options, ctx) {
-    .Call(`_V8_write_native`, key, value, options, ctx)
+    .Call(`_V8n_write_native`, key, value, options, ctx)
 }
 
 context_eval <- function(src, ctx, serialize = FALSE, await = FALSE, native = FALSE, options = NULL) {
-    .Call(`_V8_context_eval`, src, ctx, serialize, await, native, options)
+    .Call(`_V8n_context_eval`, src, ctx, serialize, await, native, options)
 }
 
 write_array_buffer <- function(key, data, ctx) {
-    .Call(`_V8_write_array_buffer`, key, data, ctx)
+    .Call(`_V8n_write_array_buffer`, key, data, ctx)
 }
 
 context_validate <- function(src, ctx) {
-    .Call(`_V8_context_validate`, src, ctx)
+    .Call(`_V8n_context_validate`, src, ctx)
 }
 
 context_null <- function(ctx) {
-    .Call(`_V8_context_null`, ctx)
+    .Call(`_V8n_context_null`, ctx)
 }
 
 make_context <- function(set_console, native = TRUE) {
-    .Call(`_V8_make_context`, set_console, native)
+    .Call(`_V8n_make_context`, set_console, native)
 }
 

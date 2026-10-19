@@ -24,7 +24,7 @@ current version of libv8.
 }
 \examples{
 # Load example wasm program
-instance <- wasm(system.file('wasm/add.wasm', package = 'V8'))
+instance <- wasm(system.file('wasm/add.wasm', package = 'V8n'))
 instance$exports$add(12, 30)
 wasm_features()
 }

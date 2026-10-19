@@ -16,9 +16,11 @@ if (getRversion() >= "4.3.0" && !is.null(asNamespace("utils")$.AtNames)) S3metho
 if (getRversion() >= "4.3.0") S3method(base::`@`, V8)
 import(Rcpp)
 importFrom(curl,curl)
-importFrom(utils,head)
-importFrom(utils,loadhistory)
-importFrom(utils,rc.options)
-importFrom(utils,savehistory)
-importFrom(utils,tail)
-useDynLib(V8, .registration = TRUE)
+importFrom(utils,
+  head,
+  loadhistory,
+  rc.options,
+  savehistory,
+  tail
+)
+useDynLib(V8n, .registration = TRUE)

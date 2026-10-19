@@ -96,7 +96,7 @@
 #' @import Rcpp
 #' @importFrom curl curl
 #' @importFrom utils head loadhistory savehistory tail
-#' @useDynLib V8, .registration = TRUE
+#' @useDynLib V8n, .registration = TRUE
 #' @examples # Create a new context
 #' ctx <- v8();
 #'

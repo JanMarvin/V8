@@ -12,7 +12,7 @@
 #' @rdname wasm
 #' @param data either raw vector or file path with the binary wasm program
 #' @examples # Load example wasm program
-#' instance <- wasm(system.file('wasm/add.wasm', package = 'V8'))
+#' instance <- wasm(system.file('wasm/add.wasm', package = 'V8n'))
 #' instance$exports$add(12, 30)
 wasm <- function(data){
   if(is.character(data))
@@ -39,7 +39,7 @@ wasm <- function(data){
 #' @examples wasm_features()
 wasm_features <- function(){
   ctx <- v8()
-  ctx$source(system.file('js/wasm-feature-detect.js', package = 'V8'))
+  ctx$source(system.file('js/wasm-feature-detect.js', package = 'V8n'))
   wrapper <- "async function test_wasm_features() {
   let out = {};
   keys = Object.keys(wasmFeatureDetect);
